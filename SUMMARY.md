@@ -9,3 +9,4 @@
   * [Function & Macro](language/function_macro.md)
   * [TypeCase](language/typecast.md)
   * [Guru Mode](language/guru_mode.md)
+  * [Probe Point](language/probe_point.md)
