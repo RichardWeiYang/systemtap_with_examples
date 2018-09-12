@@ -143,7 +143,32 @@ You would have some interesting finding with this script.
 
 BTW, @hist_linear() and @hist_log() could not use simultaneously?
 
+# Context Variables
+
+systemtap defines some context variables like parameters, local, global visible.
+
+Below is an example to access them.
+
+```
+probe vfs.read
+{
+	printf("$count                          : %d\n", $count);
+	printf("@var(\"count\")                   : %d\n", @var("count"));
+	printf("@var(\"sysctl_nr_open@fs/file.c\"): %d\n", @var("sysctl_nr_open@fs/file.c"));
+	printf("$file->f_pos                    : %d\n", $file->f_pos);
+	printf("$$vars                          : %s\n", $$vars);
+	printf("$$vars$                         : %s\n", $$vars$);
+	printf("$$parms                         : %s\n", $$parms);
+	printf("$$locals                        : %s\n", $$locals);
+	//printf("$EXPR$         : %s\n", $EXPR$);
+	exit();
+}
+```
+
+For more information, you could refer to [Context Variables][4]
+
 
 [1]: https://nanxiao.me/systemtap-note-12-associate-array-and-foreach/
 [2]: https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/systemtap_beginners_guide/arrayoperators
 [3]: https://sourceware.org/systemtap/langref/Statistics_aggregates.html
+[4]: https://sourceware.org/systemtap/man/stapprobes.3stap.html#lbAM
