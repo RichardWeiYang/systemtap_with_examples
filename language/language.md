@@ -9,17 +9,17 @@ different concepts need to understand before we can handle the script.
 Based on my humble understanding, a programming language could be divided into
 several parts:
 
-* Syntax
-* Variables
-* Control flow
-* Function & Macro
+* [Syntax](language/syntax.md)
+* [Variables](language/variables.md)
+* [Control Flow](language/control_flow.md)
+* [Function & Macro](language/function_macro.md)
 
 Besides these, systemtap has several special parts:
 
-* TypeCast
-* Guru Mode
-* Probe Point
-* Predefined Functions
+* [TypeCase](language/typecast.md)
+* [Guru Mode](language/guru_mode.md)
+* [Probe Point](language/probe_point.md)
+* [Predefined Functions](language/predefined_functions.md)
 
 When I almost finish this serials, I found a very good [Language Reference][1]
 from RH. I believe this one is more sophisticated than my serials. I would
