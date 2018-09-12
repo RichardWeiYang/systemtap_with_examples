@@ -10,4 +10,8 @@ really interesting and useful.
 To help me memorize those steps and may help others new comers, this
 serials is created.
 
+Those steps and cases in this serials are verified on Ubuntu 18.04, if no
+specific distro information is given. Besides the installation part, most
+cases are distro independent, AFAIK.
+
 Welcome your comments and suggestions.
