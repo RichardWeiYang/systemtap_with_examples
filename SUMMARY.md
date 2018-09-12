@@ -6,3 +6,4 @@
   * [Syntax](language/syntax.md)
   * [Variables](language/variables.md)
   * [Control Flow](language/control_flow.md)
+  * [Function & Macro](language/function_macro.md)
