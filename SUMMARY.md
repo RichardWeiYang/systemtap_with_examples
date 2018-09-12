@@ -14,5 +14,5 @@
   * [Predefined Functions](language/predefined_functions.md)
 * [Examples](example/example.md)
   * [Call Graph](example/call_graph.md)
-  * [Dump Stack Trace](exapmle/stack_trace.md)
+  * [Dump Stack Trace](example/stack_trace.md)
 * [Reference](Reference.md)
