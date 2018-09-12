@@ -13,4 +13,5 @@
   * [Probe Point](language/probe_point.md)
   * [Predefined Functions](language/predefined_functions.md)
 * [Examples](example/example.md)
+  * [Call Graph](example/call_graph.md)
 * [Reference](Reference.md)
