@@ -5,3 +5,4 @@
 * [Systemtap Language](language/language.md)
   * [Syntax](language/syntax.md)
   * [Variables](language/variables.md)
+  * [Control Flow](language/control_flow.md)
