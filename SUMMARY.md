@@ -8,3 +8,4 @@
   * [Control Flow](language/control_flow.md)
   * [Function & Macro](language/function_macro.md)
   * [TypeCase](language/typecast.md)
+  * [Guru Mode](language/guru_mode.md)
