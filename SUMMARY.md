@@ -15,4 +15,5 @@
 * [Examples](example/example.md)
   * [Call Graph](example/call_graph.md)
   * [Dump Stack Trace](example/stack_trace.md)
+  * [Duration](example/duration.md)
 * [Reference](Reference.md)
