@@ -16,4 +16,5 @@
   * [Call Graph](example/call_graph.md)
   * [Dump Stack Trace](example/stack_trace.md)
   * [Duration](example/duration.md)
+  * [CPU Performance](example/cpu_performance.md)
 * [Reference](Reference.md)
