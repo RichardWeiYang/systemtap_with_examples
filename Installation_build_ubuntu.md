@@ -19,10 +19,48 @@ The good news is I managed to combine the first part in **deb-pkg** and the
 last part in [Ubuntu wiki -- Systemtap][1], and finally get the package I
 need.
 
-# create rules
+# Kernel Build Tip
 
-The first step is to run **make deb-pkg** in kernel source directory. I named
-this "create rules", since this creates config files in debian directory.
+To use systemtap with kernel, you need to make sure kernel built with following
+configurations.
+
+* CONFIG_DEBUG_INFO=y
+* CONFIG_DEBUG_INFO_REDUCED=n
+* CONFIG_KPROBES=y
+* CONFIG_RELAY=y
+* CONFIG_DEBUG_FS=y
+* CONFIG_MODULES=y
+* CONFIG_MODULE_UNLOAD=y
+
+And one more tip not recorded in document -- a modification in Makefile. If not
+modified, some functions will not get proper context variables.
+
+```
+diff --git a/Makefile b/Makefile
+index c13f8b85ba60..40c984c60280 100644
+--- a/Makefile
++++ b/Makefile
+@@ -731,7 +731,7 @@ KBUILD_CFLAGS       += -fomit-frame-pointer
+ endif
+ endif
+
+-KBUILD_CFLAGS   += $(call cc-option, -fno-var-tracking-assignments)
++KBUILD_CFLAGS   += $(call cc-option, -fvar-tracking-assignments)
+
+ ifdef CONFIG_DEBUG_INFO
+ ifdef CONFIG_DEBUG_INFO_SPLIT
+```
+
+# Create Rules
+
+The first step is to run
+
+```
+make deb-pkg
+```
+
+in kernel source directory. I named this "create rules", since this creates
+config files in debian directory.
 
 Before running **make deb-pkg**, we need to make some modification as below.
 
@@ -61,6 +99,9 @@ index 663a7f343b42..40ec6caabc2c 100755
  EOF
 ```
 
+Here is the reason for those changes. You could skip it if you don't want to
+know the detail now.
+
 * First we comment out "make clean" to forbid rebuild the kernel again. As you
 know, each time to rebuild the whole kernel will take a huge amount of time.
 
@@ -71,7 +112,7 @@ this command.
 command will first call the clean rule and then rebuild. If you don't want to
 waste too much time, remove it.
 
-# create package
+# Create Package
 
 After the previous step, we may get debian directory in kernel source code and
 a tar file of the source tree.
