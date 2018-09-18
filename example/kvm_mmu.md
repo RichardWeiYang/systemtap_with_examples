@@ -42,3 +42,52 @@ Do you find something in the output?
 
 Every time, it traverses to the leaf (level 1) and then go to another subtree.
 To be simple, this is a depth first traverse.
+
+# Dump vcpu root_hpa
+
+I am curious about the content of root_hpa of each vcpu in a kvm, then tried this example.
+
+```
+probe module("kvm*").function("vcpu_run")
+{
+        kvm = $vcpu->kvm;
+        for (idx = 0; kvm->vcpus[idx]; idx++) {
+                printf("vcpu[%d] root_hpa %x\n",
+                        kvm->vcpus[idx]->vcpu_id,
+                        kvm->vcpus[idx]->arch->mmu->root_hpa);
+        }
+        exit();
+}
+```
+
+Then found 
+
+> ROOT_HPA in vcpu are not the same
+
+The result looks:
+
+```
+vcpu[0] root_hpa 2f394000
+vcpu[1] root_hpa 2dd82000
+vcpu[2] root_hpa 29f71000
+vcpu[3] root_hpa 2b044000
+vcpu[4] root_hpa 30ba3000
+vcpu[5] root_hpa 29f9c000
+vcpu[6] root_hpa 2abd7000
+vcpu[7] root_hpa 29cc7000
+```
+
+And another round it looks:
+
+```
+vcpu[0] root_hpa a5c3f000
+vcpu[1] root_hpa a1948000
+vcpu[2] root_hpa 1004a0000
+vcpu[3] root_hpa af305000
+vcpu[4] root_hpa c9f83000
+vcpu[5] root_hpa 15605a000
+vcpu[6] root_hpa 1d4a51000
+vcpu[7] root_hpa 12eea0000
+```
+
+This means the root_hpa always change. Originally, I think they will not change in their life time.
