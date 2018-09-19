@@ -4,44 +4,154 @@ Finally, I reached my original purpose to learn systemtap.
 
 Now let systemtap to show its power.
 
-# Dump level of page in kvm_mmu_pages
+# Investigate kvm_mmu_pages and mmu_page_path in mmu_zap_unsync_children
 
-To utilize memory efficiently, kvm would zay unsync children. It will traverse
-the SP and form a kvm_mmu_pages to record potential unsync children.
+To utilize memory efficiently, kvm would zap unsync children. This is achieved
+in mmu_zap_unsync_children() with two helpers: kvm_mmu_pages and mmu_page_path.
 
-Actually, the level of those pages in kvm_mmu_pages has a patten. Now let's
-use systemtap to prove it.
+With the help of systemtap, we could have a close look at how they works.
 
 Here it the systemtap script
 
 ```
-probe module("kvm").function("mmu_pages_first")
+global started
+probe begin { started = 0 }
+probe module("kvm").statement("*@arch/x86/kvm/mmu.c:2605")
 {
-        if ($pvec->nr <= 4)
+	level_2 = 0
+        for (i = 0; i < $pages->nr; i++) {
+		if ($pages->page[i]->sp->role->level == 2)
+			level_2++
+        }
+	printf("level2 %d\n", level_2);
+        if (level_2 < 2)
                 next;
-        printf("kvm_mmu_pages level (%s)\n", pp());
-        printf("SP Index:  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15\n");
+	started = $parent;
+        printf("Dump pages after mmu_unsync_walk \n");
+	printf("--------------------------------\n");
+        printf("SP Index:  0  1  2  3  4  5  6  7  8 9 10 11 12 13 14 15\n");
         printf("SP Level:");
-        for (i = 0; i < $pvec->nr; i++) {
-                printf("%3d", $pvec->page[i]->sp->role->level);
+        for (i = 0; i < $pages->nr; i++) {
+		printf("%3d", $pages->page[i]->sp->role->level);
         }
         printf("\n");
-        exit();
+        for (i = 0; i < $pages->nr; i++) {
+		printf("[%d]: %x\n", i, $pages->page[i]->sp);
+        }
+}
+
+probe module("kvm*").function("mmu_zap_unsync_children").return
+{
+	if (started == @entry($parent))
+		exit();
+}
+
+probe module("kvm*").statement("*@arch/x86/kvm/mmu.c:2609")
+{
+	if (!started)
+		next;
+        printf("Dump parents after for_each_sp \n");
+	printf("--------------------------------\n");
+	printf("Current sp   : [%d]%x\n", $i, $sp);
+	printf("Level in Parents:");
+	for (idx = 0; idx < 5; idx++) {
+		if (!$parents->parent[idx])
+			break;
+		printf("%3d", $parents->parent[idx]->role->level);
+	}
+	printf("\n");
+	printf("SP in Parents:\n")
+	for (idx = 0; idx < 5; idx++) {
+		if (!$parents->parent[idx])
+			break;
+		printf("[%d]: %x\n", idx, $parents->parent[idx]);
+	}
 }
 ```
 
 Then is the result
 
 ```
-kvm_mmu_pages level (module("kvm").function("mmu_pages_first@arch/x86/kvm/mmu.c:2264"))
-SP Index:  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15
-SP Level:  4  3  2  1  1  3  2  1  1  3  2  1
+Dump pages after mmu_unsync_walk
+--------------------------------
+SP Index:  0  1  2  3  4  5  6  7  8 9 10 11 12 13 14 15
+SP Level:  4  3  2  1  1  1  3  2  1
+[0]: ffff8dd3aea02aa0
+[1]: ffff8dd3c8ab18c0
+[2]: ffff8dd3d48a4140
+[3]: ffff8dd3c7fd3aa0
+[4]: ffff8dd3b1152280
+[5]: ffff8dd3b1152460
+[6]: ffff8dd3c8ab1000
+[7]: ffff8dd3c322bb40
+[8]: ffff8dd3b4b46f00
+Dump parents after for_each_sp
+--------------------------------
+Current sp   : [3]ffff8dd3c7fd3aa0
+Level in Parents:  2  3  4
+SP in Parents:
+[0]: ffff8dd3d48a4140
+[1]: ffff8dd3c8ab18c0
+[2]: ffff8dd3aea02aa0
+Dump parents after for_each_sp
+--------------------------------
+Current sp   : [4]ffff8dd3b1152280
+Level in Parents:  2  3  4
+SP in Parents:
+[0]: ffff8dd3d48a4140
+[1]: ffff8dd3c8ab18c0
+[2]: ffff8dd3aea02aa0
+Dump parents after for_each_sp
+--------------------------------
+Current sp   : [5]ffff8dd3b1152460
+Level in Parents:  2  3  4
+SP in Parents:
+[0]: ffff8dd3d48a4140
+[1]: ffff8dd3c8ab18c0
+[2]: ffff8dd3aea02aa0
+Dump parents after for_each_sp
+--------------------------------
+Current sp   : [8]ffff8dd3b4b46f00
+Level in Parents:  2  3  4
+SP in Parents:
+[0]: ffff8dd3c322bb40
+[1]: ffff8dd3c8ab1000
+[2]: ffff8dd3aea02aa0
 ```
 
 Do you find something in the output?
 
-Every time, it traverses to the leaf (level 1) and then go to another subtree.
-To be simple, this is a depth first traverse.
+```
+Dump pages after mmu_unsync_walk
+--------------------------------
+SP Index:  0  1  2  3  4  5  6  7  8 9 10 11 12 13 14 15
+SP Level:  4  3  2  1  1  1  3  2  1
+```
+First in "Dump pages after mmu_unsync_walk" part, we found there is a patten of
+page level in kvm_mmu_pages. When mmu_unsync_walk traverses the tree, it
+traverses to leaf (level 1) and then go to another subtree (level 3 in case it
+has). To be simple, this is a depth first traverse.
+
+```
+Dump parents after for_each_sp
+--------------------------------
+Current sp   : [3]ffff8dd3c7fd3aa0
+Level in Parents:  2  3  4
+SP in Parents:
+[0]: ffff8dd3d48a4140
+[1]: ffff8dd3c8ab18c0
+[2]: ffff8dd3aea02aa0
+```
+
+Then take a look at the "Dump parents after for_each_sp" part. This output
+tries to show the effect of for_each_sp.
+
+Each iteration of for_each_sp, mmu_page_path will contain **a path** from root
+to a leaf node (SP in Parents).
+
+And the leaf (Current sp) will be passed to zap process.
+
+That's interesting.
 
 # Dump vcpu root_hpa
 
