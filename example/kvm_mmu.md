@@ -90,4 +90,67 @@ vcpu[6] root_hpa 1d4a51000
 vcpu[7] root_hpa 12eea0000
 ```
 
-This means the root_hpa always change. Originally, I think they will not change in their life time.
+This means the root_hpa always change. Originally, I think they will not change
+in their life time.
+
+# Investigate ROOT_HPA Invalidation
+
+Each mmu->root_hpa is actually the cr3 in guest. With each task switch in
+guest, mmu->root_hpa should change accordingly.
+
+Current kvm implements cr3 cache in mmu->prev_roots[], so it will search the
+cache first to see whether the cr3 is there. While if not, mmu->root_hpa will
+be set to invalid.
+
+And then, on vcpu_enter_guest(), kvm_mmu_load() will be invoked since
+mmu->root_hpa is invalid to create a new cr3.
+
+My understanding is more tasked running in guest, more kvm_mmu_load() will be
+invoked to get a new cr3. Here is a systemtap script to observe the case.
+
+```
+global sum, mmu_load
+probe module("kvm*").function("kvm_mmu_load")
+{
+        sum++
+}
+probe timer.s(1)
+{
+        mmu_load <<< sum;
+        sum = 0;
+}
+probe timer.s(10)
+{
+        print(@hist_linear(mmu_load, 0, 100, 10));
+        delete mmu_load
+}
+```
+
+Every 1 second the script will gather the total amounts in this period and
+every 10 seconds, it will dump the statistics.
+
+The result is obvious.
+
+When guest is idle:
+
+```
+value |-------------------------------------------------- count
+    0 |@@@@@@@@@@                                         10
+   10 |                                                    0
+   20 |                                                    0
+```
+
+which means task switch is not frequent.
+
+When guest is building kernel:
+
+```
+value |-------------------------------------------------- count
+   90 |                                                    0
+  100 |                                                    0
+ >100 |@@@@@@@@@@                                         10
+```
+
+which means guest is running heavily.
+
+While I am wondering is this a heavy burden? or we could improve at this point?
